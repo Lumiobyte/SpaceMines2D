@@ -20,7 +20,7 @@ pygame.init()
 
 # Import custom modules
 from classes import *
-from text import Text
+import ui
 
 ###############
 ##### Functions
@@ -38,9 +38,12 @@ def setup():
             fullscreen_res = (display_info.current_w, round(display_info.current_w / 1.77778)) # Potentially round the y value up
             screen = pygame.display.set_mode(fullscreen_res, pygame.FULLSCREEN|pygame.SCALED)
     else:
-        screen = pygame.display.set_mode((800, 450))
+        screen = pygame.display.set_mode((1200, 675))
 
     return screen
+
+def scale_rect(rect: pygame.Rect, game_res):
+    return pygame.Rect(rect.left * game_res.scaling_factor.x, rect.top * game_res.scaling_factor.y, rect.width * game_res.scaling_factor.x, rect.height * game_res.scaling_factor.y)
 
 ###############
 ##### Variables
@@ -48,19 +51,24 @@ def setup():
 screen = setup()
 clock = pygame.time.Clock()
 frame_time = 0
-
-print(screen.get_width())
-print(screen.get_height())
-
 game_res = GameResolution((2560, 1440), (screen.get_width(), screen.get_height()), Point(screen.get_width() / 2560, screen.get_height() / 1440))
+text = ui.Text(game_res.scaling_factor.y)
 
-print(game_res.scaling_factor.x)
-print(game_res.scaling_factor.y)
+# Controls which screen is currently being displayed
+# 0 = Main Menu / 1 = Game
+view = 1
 
-text = Text(game_res.scaling_factor.y)
+update_zones = []
 
-smile = Image("images/smile.png", game_res)
-diamond = AnimatedImage("images/diamond", 100, game_res)
+background_rects = [scale_rect(pygame.Rect(350, 100, 800, 800), game_res), scale_rect(pygame.Rect(1410, 100, 800, 800), game_res)]
+
+current_infobox = -1
+infoboxes = [
+    ui.InfoBox(Point(300, 300) * game_res.scaling_factor, Point(1280, 720) * game_res.scaling_factor, {}, ui.ZoomAnimation(8, 0.05))
+]
+
+miner = AnimatedImage("images/miners", 1000, game_res)
+house = AnimatedImage("images/houses", 1200, game_res)
 
 ###############
 ##### Main Loop
@@ -76,22 +84,73 @@ while True:
                 pygame.quit()
                 sys.exit()
 
+            if event.key == K_o:
+
+                if current_infobox == 0 and not infoboxes[0].animation.playing:
+                    current_infobox = -1
+                elif current_infobox == -1:
+                    current_infobox = 0
+                    infoboxes[0].open(frame_time)
+
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
 
-    ### Logic
+    if view == 0: # MAIN MENU
+        pass
 
-    diamond.tick(frame_time)
+    elif view == 1: # GAME
 
-    ### Render
+        ##### UI Logic #####
 
-    screen.fill(Colours.RED)
+        if current_infobox > -1:
+            infoboxes[current_infobox].process(None, None, None)
+            update_zones.append(infoboxes[current_infobox].render(screen, frame_time))
 
-    text.write(screen, text.MED_BOLD, Colours.BLUE, (10, 10), f"FPS: {round(clock.get_fps(), 1)}")
+        ##### Logic #####
 
-    smile.render(screen, Point(300, 300))
-    diamond.render(screen, Point(800, 300))
+        miner.tick(frame_time)
+        house.tick(frame_time)
 
-    pygame.display.flip()
+        ##### Render #####
+        
+        if current_infobox < 0:
+
+            # Background
+            screen.fill(Colours.BLUE)
+            
+            pygame.draw.rect(screen, Colours.LIGHT_GRAYBLUE, background_rects[0])
+            pygame.draw.rect(screen, Colours.LIGHT_BLUE, background_rects[1])
+
+            # Images + Animations
+
+            miner.render(screen, Point(400, 400))
+            house.render(screen, Point(1600, 400))
+
+            # Text
+            text.write(screen, text.SMALL, Colours.BLACK, (10, 1400), f"FPS: {round(clock.get_fps(), 1)}")
+
+
+        elif infoboxes[current_infobox].newly_opened: # When infobox was just opened
+
+            background_dimmer = pygame.Surface((screen.get_width(), screen.get_height()))
+            background_dimmer.set_alpha(100)
+            background_dimmer.fill(Colours.BLACK)
+
+            screen.blit(background_dimmer, (0, 0))
+
+
+    if len(update_zones) > 0:
+        if infoboxes[current_infobox].newly_opened: # Do one full pass to ensure that the dimming surface is rendered
+            pygame.display.flip()
+            infoboxes[current_infobox].newly_opened = False
+
+        else: # Only update the pixels containing infoboxes
+            for zone in update_zones:
+                pygame.display.update(zone)
+
+            update_zones = []
+    else:
+        pygame.display.flip()
+
     frame_time = clock.tick(60)

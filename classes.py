@@ -6,15 +6,19 @@ import glob
 class Colours:
     RED = (255, 0, 0)
     GREEN = (0, 255, 0)
-    BLUE = (0, 0, 255)
-    BLACK = (255, 255, 255)
-    WHITE = (0, 0, 0)
+    FULLBLUE = (0, 0, 255)
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
 
-    AQUA = (127, 224, 227)
-    YELLOW = (255, 235, 84)
-    ORANGE = (242, 141, 63)
-    LIME = (128, 207, 72)
-    PURPLE = (186, 81, 194)
+    LIGHT_GREEN = (182, 245, 140)
+    DARK_GREEN = (62, 108, 40)
+    LIGHT_GRAY = (135, 135, 135)
+    LIGHT_BROWN = (217, 192, 104)
+
+    # Environment Colours
+    LIGHT_BLUE = (185, 237, 234) #(153, 232, 208)
+    LIGHT_GRAYBLUE = (97, 133, 145) #(185, 237, 234)
+    BLUE = (121, 165, 189)
 
 @dataclass
 class Point:
@@ -99,8 +103,8 @@ class AnimatedImage():
             else:
                 self.current_frame += 1
 
-    def tick(self, frame_time):
-        self.time_until_next -= frame_time
+    def tick(self, delta):
+        self.time_until_next -= delta
 
         if(self.time_until_next <= 0):
             self.next_frame()
