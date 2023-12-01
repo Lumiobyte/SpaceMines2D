@@ -9,11 +9,21 @@ class Colours:
     FULLBLUE = (0, 0, 255)
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
+    LIGHT_YELLOW = (247, 240, 141)
 
     LIGHT_GREEN = (182, 245, 140)
     DARK_GREEN = (62, 108, 40)
     LIGHT_GRAY = (135, 135, 135)
     LIGHT_BROWN = (217, 192, 104)
+
+    # UI Colours
+    PANEL_DARKGREY = (33, 33, 33)
+    INFOBOX_GREY = (41, 41, 41)
+    INFOBOX_BORDER = (119, 161, 154)
+    BUTTON = (220, 242, 239)
+    BUTTON_HOVER = (119, 161, 154)
+    TEXT_SUBTITLE = (191, 191, 191)
+    TEXT_LIGHT = (223, 235, 234)
 
     # Environment Colours
     LIGHT_BLUE = (185, 237, 234) #(153, 232, 208)
@@ -37,11 +47,15 @@ class Point:
     def __mul__(self, scalar):
         if isinstance(scalar, self.__class__):
             return Point(self.x * scalar.x, self.y * scalar.y)
+        elif isinstance(scalar, tuple):
+            return Point(self.x * scalar[0], self.y * scalar[1])
         else:
             return Point(self.x * scalar, self.y * scalar)
     def __truediv__(self, scalar):
         if isinstance(scalar, self.__class__):
             return Point(self.x / scalar.x, self.y / scalar.y)
+        elif isinstance(scalar, tuple):
+            return Point(self.x / scalar[0], self.y / scalar[1])
         else:
             return Point(self.x / scalar, self.y / scalar)
     def __len__(self):
@@ -77,8 +91,16 @@ class Image:
             # Use smoothscale if this gets too ugly
             self.image = pygame.transform.scale(self.image, (Point(self.image.get_width(), self.image.get_height()) * self.scaling_factor).tuple())
 
-    def render(self, screen, pos: Point):
+    def return_scaled_image(self):
+        return self.image
+
+    def get_rect(self):
+        return self.image.get_rect()
+
+    def render(self, screen, pos: Point, centered = False):
         render_pos = pos * self.scaling_factor # Multiply current position by scaling factor to obtain final position
+        if centered:
+            render_pos -= Point(self.image.get_width() / 2, self.image.get_height() / 2)
         screen.blit(self.image, render_pos.tuple())
 
 
@@ -96,6 +118,9 @@ class AnimatedImage():
         self.time_until_next = self.frame_length
         self.pause = False
 
+    def get_rect(self):
+        self.frames[self.current_frame].get_rect()
+
     def next_frame(self):
         if not self.pause:
             if self.current_frame >= self.num_frames - 1:
@@ -110,5 +135,5 @@ class AnimatedImage():
             self.next_frame()
             self.time_until_next = self.frame_length
 
-    def render(self, screen, pos: Point):
-        self.frames[self.current_frame].render(screen, pos)
+    def render(self, screen, pos: Point, centered = False):
+        self.frames[self.current_frame].render(screen, pos, centered)
